@@ -6,8 +6,8 @@
 *   Ceci est notre code de Reed Solomon. C'est à la fois un encodeur et un décodeur de Reed Solomon, 
 *   L'encodage est systématique et le décodage se fait avec l'algorithme de Berlekamp.
 *
-*   Nous avons basé notre code sur un code de Simon Rockliff, University of Adelaide publié le 21/09/89
-*
+*   Le code initial est celui de Simon Rockliff (University of Adelaide publié le 21/09/89), que nous avons ensuite traduit
+    dans le langage de programmation java ce qui nous a permis de mieux comprendre son fonctionnement.
 */
 
 //import java.util.*;
@@ -15,7 +15,7 @@
 
 public class ReedSolomon {
 
-    /* déclaration des variables gloables utilisées dans notre algorithme */
+    // Nous déclarons ici des variables statiques qui vont êtres utilisées tout au long de notre programme
 
     public static int mm = 8; // Nombre de bits par symboles GF(256) = GF(2^8)
     public static int nn = 255; // Longeur du code nn=2**mm-1
@@ -36,7 +36,7 @@ public class ReedSolomon {
         generate_gf();
         System.out.println("Look-up tables for GF(2** "+mm +")");
         System.out.println("  i   alpha_to[i]  index_of[i]");
-        for (i = 0; i <= nn; i++) {
+        for (i = 0; i <= nn; i++){
             System.out.println(""+i +"      "+alpha_to[i] +"          "+index_of[i]);
         }
         System.out.print("\n\n");
@@ -52,31 +52,33 @@ public class ReedSolomon {
             data[i] = 0;
         }
 
-        /* On code ici le mot MATHS dans un tableau grace au code ASCII */
+        // On met ici le mot MATHS en ASCII pour ensuite pouvoir l'encoder
         data[0] = 77;
         data[1] = 41;
         data[2] = 84;
         data[3] = 72;
         data[4] = 83;
 
-        /* encodage du mot */
+        // On appelle ici la méthode qui va nous permettre d'encoder le mot mit précedemment
         encode_rs();
 
         /* stockage du mot transmis dans recd[] */
-        for (i = 0; i < nn - kk; i++)
+        for (i = 0; i < nn - kk; i++){
             recd[i] = bb[i];
-        for (i = 0; i < kk; i++)
+        }
+        for (i = 0; i < kk; i++){
             recd[i + nn - kk] = data[i];
+        }
+        
 
-        /*
-         * Modification des données transmises pour forcer une erreur et tester la
-         * robustesse de l'algorithme.
-         */
+        
         data[nn - nn / 2] = 3;
 
         /* Indexation de recd[] */
-        for (i = 0; i < nn; i++)
+        for (i = 0; i < nn; i++){
             recd[i] = index_of[recd[i]];
+        }
+        
 
         /* decodage du mot */
         decode_rs(); // Le programme renvoie un tableau avec les coefficients du polynome
@@ -87,10 +89,10 @@ public class ReedSolomon {
         System.out.print("Results for Reed-Solomon code (n="+nn +", k="+kk +", t="+tt +")\n\n");
         System.out.println("  i  data[i]   recd[i](decoded)   (data, recd in polynomial form)");
 
-        for (i = 0; i < nn - kk; i++) {
+        for (i = 0; i < nn - kk; i++){
             System.out.println(""+i +"    "+bb[i] +"      "+recd[i]);
         }
-        for (i = nn - kk; i < nn; i++) {
+        for (i = nn - kk; i < nn; i++){
             System.out.println(""+i +"    "+data[i - nn + kk] +"      "+recd[i]);
         }
     }
@@ -104,20 +106,21 @@ public class ReedSolomon {
 
         mask = 1;
         alpha_to[mm] = 0;
-        for (i = 0; i < mm; i++) {
+        for (i = 0; i < mm; i++){
             alpha_to[i] = mask;
             index_of[alpha_to[i]] = i;
-            if (pp[i] != 0)
-                alpha_to[mm] ^= mask;
+            if (pp[i] != 0){alpha_to[mm] ^= mask;}
             mask <<= 1;
         }
         index_of[alpha_to[mm]] = mm;
         mask >>= 1;
-        for (i = mm + 1; i < nn; i++) {
-            if (alpha_to[i - 1] >= mask)
+        for (i = mm + 1; i < nn; i++){
+            if (alpha_to[i - 1] >= mask){
                 alpha_to[i] = alpha_to[mm] ^ ((alpha_to[i - 1] ^ mask) << 1);
-            else
+            }              
+            else{
                 alpha_to[i] = alpha_to[i - 1] << 1;
+            }              
             index_of[alpha_to[i]] = i;
         }
         index_of[0] = -1;
@@ -129,19 +132,23 @@ public class ReedSolomon {
 
         gg[0] = 2; // Le premier élément vaut 2 dans GF(2^mm)
         gg[1] = 1; // g(x) = (X+alpha) au début donc gg[1] doit être égal à 1
-        for (i = 2; i <= nn - kk; i++) // initialisation du polynome générateur de degrè nn-kk = 6
-        {
+        for (i = 2; i <= nn - kk; i++){ // initialisation du polynome générateur de degrè nn-kk = 6
+        
             gg[i] = 1;
-            for (j = i - 1; j > 0; j--)
-                if (gg[j] != 0)
+            for (j = i - 1; j > 0; j--){
+                if (gg[j] != 0){
                     gg[j] = gg[j - 1] ^ alpha_to[(index_of[gg[j]] + i) % nn];
-                else
+                }  
+                else{
                     gg[j] = gg[j - 1];
+                }                   
+            }   
             gg[0] = alpha_to[(index_of[gg[0]] + i) % nn]; // On sait que gg[0] ne peut pas valoir 0
         }
         // Pour des raisons de vitesse on convertit le gg[] en index[]
-        for (i = 0; i <= nn - kk; i++)
+        for (i = 0; i <= nn - kk; i++){
             gg[i] = index_of[gg[i]];
+        }      
     }
 
     /* fonction permettant d'encoder le messsage */
@@ -156,27 +163,29 @@ public class ReedSolomon {
         int i, j;
         int feedback;// Encodage systématique utilisant la division polynomiale
 
-        for (i = 0; i < nn - kk; i++)
+        for (i = 0; i < nn - kk; i++){
             bb[i] = 0; // Initialisation du tableau à 0
-        for (i = kk - 1; i >= 0; i--) // Parcours le tableau à l'envers de 248 à 0 soit 249 éléments
-        {
+        }
+            
+        for (i = kk - 1; i >= 0; i--){ // Parcours le tableau à l'envers de 248 à 0 soit 249 éléments
             feedback = index_of[data[i] ^ bb[nn - kk - 1]];
-            if (feedback != -1) {
-                for (j = nn - kk - 1; j > 0; j--)
+            if (feedback != -1){
+                for (j = nn - kk - 1; j > 0; j--){
                     if (gg[j] != -1)
                         bb[j] = bb[j - 1] ^ alpha_to[(gg[j] + feedback) % nn];
                     else
                         bb[j] = bb[j - 1];
+                }    
                 bb[0] = alpha_to[(gg[0] + feedback) % nn];
-            } else {
-                for (j = nn - kk - 1; j > 0; j--)
+            } 
+            else {
+                for (j = nn - kk - 1; j > 0; j--){
                     bb[j] = bb[j - 1];
+                }   
                 bb[0] = 0;
             }
-            ;
         }
-        ;
-    };
+    }
 
     /* fonction permettant de décoder le message */
     public static void decode_rs(){
@@ -220,30 +229,32 @@ public class ReedSolomon {
         int [] reg = new int[tt+1] ;
 
         /* création des syndromes */ 
-        for (i=1; i<=nn-kk; i++)
-        { s[i] = 0 ;
-            for (j=0; j<nn; j++)
+        for (i=1; i<=nn-kk; i++){
+        s[i] = 0 ;
+            for (j=0; j<nn; j++){
                 if (recd[j]!=-1)
-                    s[i] ^= alpha_to[(recd[j]+i*j)%nn] ;   
-
+                    s[i] ^= alpha_to[(recd[j]+i*j)%nn];
+            }
             /* conversion des syndromes de la forme polynomiale à une forme d'indexs */     
 
-            if (s[i]!=0)  syn_error=1 ;        
+            if (s[i]!=0){
+                syn_error=1 ;
+            }        
             s[i] = index_of[s[i]] ;
-        } ;
+        } 
 
-        if (syn_error==1)   // si une erreur est détectée, le processus de correction est lancé 
+        if (syn_error==1){   // si une erreur est détectée, le processus de correction est lancé 
 
         /* Lancement de l'algorithme de Berlekamp de manière à détecter les erreurs de transmission */
 
-        {
+        
             /* Initialisation des variables */
             d[0] = 0 ;    //forme index        
             d[1] = s[1] ;  //forme index       
             elp[0][0] = 0 ; //forme index  
             elp[1][0] = 1 ;  //forme polynomiale     
-            for (i=1; i<nn-kk; i++)
-            { elp[0][i] = -1 ;  //forme index  
+            for (i=1; i<nn-kk; i++){
+                elp[0][i] = -1 ;  //forme index  
                 elp[1][i] = 0 ;   //forme polynomiale 
             }
             l[0] = 0 ;
@@ -252,141 +263,178 @@ public class ReedSolomon {
             u_lu[1] = 0 ;
             u = 0 ;
 
-            do
-            {
+            do{
                 u++ ;
-                if (d[u]==-1)
-                { l[u+1] = l[u] ;
-                    for (i=0; i<=l[u]; i++)
-                    {  elp[u+1][i] = elp[u][i] ;
+                if (d[u]==-1){
+                    l[u+1] = l[u] ;
+                    for (i=0; i<=l[u]; i++){
+                        elp[u+1][i] = elp[u][i] ;
                         elp[u][i] = index_of[elp[u][i]] ;
                     }
                 }
-                else
-
-                { q = u-1 ;
+                else{ 
+                    q = u-1;
                     while ((d[q]==-1) && (q>0)) q-- ;
 
-                    if (q>0) // trouver le premier d[q] différent de 0
-                    { j=q ;
-                        do
-                        { j-- ;
-                            if ((d[j]!=-1) && (u_lu[q]<u_lu[j]))
-                                q = j ;
-                        }while (j>0) ;
-                    } ;
+                    if (q>0){ // trouver le premier d[q] différent de 0
+                        j=q;
+                        do{ 
+                            j-- ;
+                            if ( (d[j]!=-1) && (u_lu[q]<u_lu[j]) ){
+                                q = j;
+                            }      
+                        }while (j>0);
+                    }
 
                     //On trouve un q tel que d[u]différent de 0 et u_lu[q] est maximum afin de conserver les nouveaux degrès
-                    if (l[u]>l[q]+u-q)  l[u+1] = l[u] ;
-                    else  l[u+1] = l[q]+u-q ;
+                    if (l[u]>l[q]+u-q){
+                        l[u+1] = l[u];
+                    }
+                    else{ l[u+1] = l[q]+u-q;}
 
                     // crée un nouveau elp(x)
-                    for (i=0; i<nn-kk; i++)    elp[u+1][i] = 0 ;
-                    for (i=0; i<=l[q]; i++)
+                    for (i=0; i<nn-kk; i++){
+                        elp[u+1][i] = 0 ;
+                    }    
+                    for (i=0; i<=l[q]; i++){
                         if (elp[q][i]!=-1)
                             elp[u+1][i+u-q] = alpha_to[(d[u]+nn-d[q]+elp[q][i])%nn] ;
-                    for (i=0; i<=l[u]; i++)
-                    { elp[u+1][i] ^= elp[u][i] ;
-                        elp[u][i] = index_of[elp[u][i]] ;   // Pour convertir l'ancienne valeur de l'elp en index 
+                    }
+                    for (i=0; i<=l[u]; i++){
+                        elp[u+1][i] ^= elp[u][i];
+                        elp[u][i] = index_of[elp[u][i]];   // Pour convertir l'ancienne valeur de l'elp en index 
                     }
                 }
                 u_lu[u+1] = u-l[u+1] ;
 
                 //Distance (u+1)
-                if (u<nn-kk)    
-                {
-                    if (s[u+1]!=-1)
+                if (u<nn-kk){
+                    if (s[u+1]!=-1){
                         d[u+1] = alpha_to[s[u+1]] ;
-                    else
+                    }  
+                    else{
                         d[u+1] = 0 ;
-                    for (i=1; i<=l[u+1]; i++)
-                        if ((s[u+1-i]!=-1) && (elp[u+1][i]!=0))
+                    }
+                    for (i=1; i<=l[u+1]; i++){
+                        if ((s[u+1-i]!=-1) && (elp[u+1][i]!=0)){
                             d[u+1] ^= alpha_to[(s[u+1-i]+index_of[elp[u+1][i]])%nn] ;
+                        }                   
+                    }    
                     d[u+1] = index_of[d[u+1]] ; // On met d[u+1] en index     
                 }
-            } while ((u<nn-kk) && (l[u+1]<=tt)) ;
-
+            }while ((u<nn-kk) && (l[u+1]<=tt));
             u++ ;
-            if (l[u]<=tt)     // L'erreur peut être corrigée    
-            {
+            if (l[u]<=tt){     // L'erreur peut être corrigée    
+            
                 // On met elp sous la forme index
-                for (i=0; i<=l[u]; i++)   elp[u][i] = index_of[elp[u][i]] ;
+                for (i=0; i<=l[u]; i++){
+                    elp[u][i] = index_of[elp[u][i]] ;
+                }   
 
                 // On cherche les racines polynomiales pour la localisation de l'erreur 
-                for (i=1; i<=l[u]; i++)
+                for (i=1; i<=l[u]; i++){
                     reg[i] = elp[u][i] ;
+                }
                 count = 0 ;
-                for (i=1; i<=nn; i++)
-                {  q = 1 ;
-                    for (j=1; j<=l[u]; j++)
-                        if (reg[j]!=-1)
-                        { reg[j] = (reg[j]+j)%nn ;
+                for (i=1; i<=nn; i++){
+                    q = 1 ;
+                    for (j=1; j<=l[u]; j++){
+                        if (reg[j]!=-1){
+                            reg[j] = (reg[j]+j)%nn ;
                             q ^= alpha_to[reg[j]] ;
-                        } ;
-                    if (q==0)        //Stock l'indice de la racine et et la location de l'erreur 
-                    { root[count] = i;
+                        }
+                    }
+                        
+                    if (q==0){        //Stock l'indice de la racine et et la location de l'erreur 
+                        root[count] = i;
                         loc[count] = nn-i ;
                         count++ ;
-                    };
-                } ;
+                    }
+                }
                 if (count==l[u])     // Pas de racines = le degré de l'elp donc <= tt erreurs 
                 {
                     /* forme polynomiale de z(x) */
-                    for (i=1; i<=l[u]; i++)        /* Z[0] = 1 toujours */
-                    { if ((s[i]!=-1) && (elp[u][i]!=-1))
+                    for (i=1; i<=l[u]; i++){        /* Z[0] = 1 toujours */
+                        if ((s[i]!=-1) && (elp[u][i]!=-1)){
                             z[i] = alpha_to[s[i]] ^ alpha_to[elp[u][i]] ;
-                        else if ((s[i]!=-1) && (elp[u][i]==-1))
+                        }   
+                        else if ((s[i]!=-1) && (elp[u][i]==-1)){
                             z[i] = alpha_to[s[i]] ;
-                        else if ((s[i]==-1) && (elp[u][i]!=-1))
+                        }   
+                        else if ((s[i]==-1) && (elp[u][i]!=-1)){
                             z[i] = alpha_to[elp[u][i]] ;
-                        else
+                        }   
+                        else{
                             z[i] = 0 ;
-                        for (j=1; j<i; j++)
-                            if ((s[j]!=-1) && (elp[u][i-j]!=-1))
-                                z[i] ^= alpha_to[(elp[u][i-j] + s[j])%nn] ;
+                        } 
+                        for (j=1; j<i; j++){
+                            if ((s[j]!=-1) && (elp[u][i-j]!=-1)){
+                                z[i] ^= alpha_to[(elp[u][i-j] + s[j])%nn];
+                            } 
+                        }
+                            
                         z[i] = index_of[z[i]] ;  // Met sous forme index  
-                    } ;
+                    }
 
                     /* Evalue les erreurs des locations données par loc[i] */
-                    for (i=0; i<nn; i++)
-                    { err[i] = 0 ;
-                        if (recd[i]!=-1)        /* conversion de recd[] à la forme polynomiale */
+                    for (i=0; i<nn; i++){
+                        err[i] = 0 ;
+                        if (recd[i]!=-1){
                             recd[i] = alpha_to[recd[i]] ;
-                        else  recd[i] = 0 ;
+                        }        /* conversion de recd[] à la forme polynomiale */   
+                        else{ recd[i] = 0 ;}
                     }
-                    for (i=0; i<l[u]; i++)    /* execute le numérateur d'erreur en premier */
-                    { err[loc[i]] = 1;       /* accounts for z[0] */
-                        for (j=1; j<=l[u]; j++)
-                            if (z[j]!=-1)
+
+                    for (i=0; i<l[u]; i++){    /* execute le numérateur d'erreur en premier */
+                        err[loc[i]] = 1;       /* accounts for z[0] */
+                        for (j=1; j<=l[u]; j++){
+                            if (z[j]!=-1){
                                 err[loc[i]] ^= alpha_to[(z[j]+j*root[i])%nn] ;
-                        if (err[loc[i]]!=0)
-                        { err[loc[i]] = index_of[err[loc[i]]] ;
+                            }    
+                        }  
+                        if (err[loc[i]]!=0){
+                            err[loc[i]] = index_of[err[loc[i]]] ;
                             q = 0 ;          /* le dominateur du terme d'erreur */
-                            for (j=0; j<l[u]; j++)
-                                if (j!=i)
+                            for (j=0; j<l[u]; j++){
+                                if (j!=i){
                                     q += index_of[1^alpha_to[(loc[j]+root[i])%nn]] ;
+                                }
+                            }   
                             q = q % nn ;
                             err[loc[i]] = alpha_to[(err[loc[i]]-q+nn)%nn] ;
                             recd[loc[i]] ^= err[loc[i]] ;  //recd[i] doit être sous forme polynominale
                         }
                     }
                 }
-                else    /* Pas de racine != degrès d'elp => >tt les erreurs sont trop nombreuses pour être résolues*/
-                    for (i=0; i<nn; i++)  // retourne une notification d'erreur si désiré      
-                        if (recd[i]!=-1)   //convertit recd[] sous forme poynomiale     
+                else{
+                    /* Pas de racine != degrès d'elp => >tt les erreurs sont trop nombreuses pour être résolues*/
+                    for (i=0; i<nn; i++){
+                        if (recd[i]!=-1){
                             recd[i] = alpha_to[recd[i]] ;
-                        else  recd[i] = 0 ;     // retourne le code reçu sans le modifier 
+                        }   //convertit recd[] sous forme poynomiale       
+                        else  recd[i] = 0 ;     // retourne le code reçu sans le modifier
+                    }  // retourne une notification d'erreur si désiré      
+                }     
             }
-            else         // elp a un degré >tt donc ne peut pas être résolu  
-                for (i=0; i<nn; i++)      // retourne une notification d'erreur si désiré 
-                    if (recd[i]!=-1)        //convertit recd[] sous forme poynomiale  
+            else{
+                for (i=0; i<nn; i++){
+                    if (recd[i]!=-1){
                         recd[i] = alpha_to[recd[i]] ;
+                    }        //convertit recd[] sous forme poynomiale     
                     else  recd[i] = 0 ;    // retourne le code reçu sans le modifier 
+                }         // elp a un degré >tt donc ne peut pas être résolu  
+            }      // retourne une notification d'erreur si désiré       
         }
-        else      // pas de syndromes différents de zéro, il y a donc absence d'erreurs 
-            for (i=0; i<nn; i++)
-                if (recd[i]!=-1)        
+        else{
+            for (i=0; i<nn; i++){
+                if (recd[i]!=-1){
                     recd[i] = alpha_to[recd[i]] ; // conversion de recd[] sous forme polynomiale
-                else  recd[i] = 0 ;
+                }        
+                    
+                else{
+                    recd[i] = 0 ;
+                }
+            }   
+        }      // pas de syndromes différents de zéro, il y a donc absence d'erreurs     
     }
 }
